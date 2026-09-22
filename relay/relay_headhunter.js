@@ -6,8 +6,14 @@
 const kol = require("kolmafia");
 
 const MY_FILENAME="./relay_headhunter.js";
+const TARGET_VERSION=29273;
 
 module.exports.main = function main(){
+	if(!checkVersion()){
+		kol.write("<font color=red>Requires KoLmafia r"+TARGET_VERSION+" or newer.</font>");
+		return;
+	}
+	
 	let output="";
 	
 	let fields=kol.formFields();
@@ -33,6 +39,12 @@ function parseConfig(fields){
 	}
 	
 	let config={pathId};
+	if("sortBy" in fields){
+		config.sortBy=fields["sortBy"];
+	}else{
+		config.sortBy="Item Drop Bonus";
+	}
+	
 	if("allowedExtras" in fields){
 		config.allowedExtras=parseInt(fields["allowedExtras"]);
 	}else{
@@ -75,11 +87,18 @@ function handleSearchBar(config){
 	rv+=buildCheckbox(config,"stench")+"&nbsp;";
 	rv+=buildCheckbox(config,"spooky")+"<br/>";
 	
+	rv+="Sort By: <select name='sortBy'>";
+	for([name,label] in FIELD_LABELS){
+		rv+="<option value='"+label+"'"+(label==config.sortBy?" selected":"")+">"+label+"</option>";
+	}
+	rv+="</select> ";
+	
 	rv+="Allow Extras: <select name='allowedExtras'>";
 	for(let i=0;i<5;i++){
 		rv+="<option value='"+i+"'"+(i==config.allowedExtras?" selected":"")+">"+i+"</option>";
 	}
 	rv+="</select><br/>";
+	
 	rv+="<br/><button type='submit' name='action' value='search'>Search</button></form>";
 	
 	return rv+"\n";
@@ -99,11 +118,11 @@ function handleSearch(config){
 	monsterloop:for([idx,monster] in Monster.all()){
 		if(!monster.copyable || monster.boss){continue;}
 		
-		let monsterMods=kol.shrunkenHeadZombie(monster,path);
+		let monsterMods=kol.shrunkenHeadZombieWeights(monster,path);
 		
 		let extras=0;
 		for([name,label] in FIELD_LABELS){
-			let present=monsterMods.includes(label);
+			let present=(label in monsterMods);
 			let reqd=config[name];
 			if(reqd && !present){
 				continue monsterloop;
@@ -123,11 +142,11 @@ function handleSearch(config){
 	if(results.length==0){
 		rv+="No monster matches these specifications.<br/>";
 	}else{
-		results.sort(resultComparator);
+		results.sort(getResultComparator(config.sortBy));
 		rv+="<style>table{border-spacing:0px} tr:nth-child(even){background-color:#FFFFFF} tr:nth-child(odd){background-color:#DDDDDD} td{padding:2px 5px}</style>";
 		rv+="<table>";
 		for([idx,result] in results){
-			rv+="<tr><td><a href='"+kol.toWikiUrl(result.monster)+"' target='_blank'>"+result.monster+"</a></td><td>"+result.monsterMods.join("</td><td>")+"</td></tr>";
+			rv+="<tr><td><a href='"+kol.toWikiUrl(result.monster)+"' target='_blank'>"+result.monster+"</a></td>"+modsToString(result.monsterMods,config)+"</tr>";
 		}
 		rv+="</table>";
 	}
@@ -135,10 +154,39 @@ function handleSearch(config){
 	return rv+"\n";
 }
 
-function resultComparator(a,b){
-	if(a.extras!=b.extras){
-		return a.extras-b.extras;
+function getResultComparator(sortBy){
+	return function resultComparator(a,b){
+		let aSortVal=100*(a.monsterMods[sortBy] ?? 0)-a.extras;
+		let bSortVal=100*(b.monsterMods[sortBy] ?? 0)-b.extras;
+		
+		if(aSortVal!=bSortVal){
+			return bSortVal-aSortVal;
+		}
+		
+		return a.monster.name.toUpperCase()<b.monster.name.toUpperCase() ? -1 : 1;
+	}
+}
+
+function modsToString(monsterMods,config){
+	function modWithWeight(monsterMods,label){
+		if(!(label in monsterMods)){
+			return "";
+		}
+		
+		return "<td>"+label+" ("+monsterMods[label]+"%)</td>";
 	}
 	
-	return a.monster.name.toUpperCase()<b.monster.name.toUpperCase() ? -1 : 1;
+	let rv="";
+	rv+=modWithWeight(monsterMods,config.sortBy);
+	for([name,label] in FIELD_LABELS){
+		if(label!=config.sortBy){
+			rv+=modWithWeight(monsterMods,label);
+		}
+	}
+	return rv;
+}
+
+function checkVersion(){
+	let current=kol.getRevision();
+	return current>=TARGET_VERSION;
 }
