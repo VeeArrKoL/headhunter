@@ -116,7 +116,7 @@ function handleSearch(config){
 	
 	let results=[];
 	monsterloop:for([idx,monster] in Monster.all()){
-		if(!monster.copyable || monster.boss){continue;}
+		if(!monster.copyable || monster.boss || monster.id<=0){continue;}
 		
 		let monsterMods=kol.shrunkenHeadZombieWeights(monster,path);
 		
