@@ -1,7 +1,7 @@
 // Headhunter
 // by VeeArr (#2045369)
 //
-// Based on spading by MontyPythn (#256896)
+// Based on spading by MontyPythn (#256896) and Jeparo (#2246666)
 
 const kol = require("kolmafia");
 

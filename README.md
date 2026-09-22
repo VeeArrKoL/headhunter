@@ -1,7 +1,7 @@
 # headhunter
 KoLmafia relay script for shrunken head, providing an interface to search for monsters which will have specified bonuses when reanimated using the [shrunken head](https://wiki.kingdomofloathing.com/Shrunken_head).
 
-The data provided by headhunter is based on spading by MontyPythn (#256896).
+The data provided by headhunter is based on spading by MontyPythn (#256896) and Jeparo (#2246666).
 
 ## Installation
 headhunter requires KoLmafia r29273 or newer. Install headhunter into KoLmafia by using this command in the gCLI:
